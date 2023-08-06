@@ -4,15 +4,20 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import spring.security.demo.JWT.JwtAuthenticationFilter;
 import spring.security.demo.repository.UserRepo;
 
 import static org.springframework.security.config.Customizer.withDefaults;
@@ -26,14 +31,19 @@ public class securityConfig {
     private PasswordEncoder passwordEncoder;
 
     @Autowired
+    private JwtAuthenticationFilter authenticationFilter;
+
+    @Autowired
     private UserRepo userRepo;
     @Autowired
     private UserDetailsService userDetailsService;
 
 
-    private static final String[] SECURED_URLs = {"users/allUsers"};
+    private static final String[] SECURED_URLs_ADMIN = {"users/allUsers"};
 
-    private static final String[] UN_SECURED_URLs = {"users/register/save"};
+    private static final String[] SECURED_URLs_USER = {};
+
+    private static final String[] UN_SECURED_URLs = {"users/login","users/register/save"};
 
     @Bean
     public static PasswordEncoder passwordEncoder(){
@@ -53,37 +63,29 @@ public class securityConfig {
                 // authorization define access rules for different URL patterns.
                 .authorizeHttpRequests((authorize) ->authorize
                         .requestMatchers(UN_SECURED_URLs).permitAll()
-                        .requestMatchers(SECURED_URLs).hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(SECURED_URLs_ADMIN).hasAnyAuthority("ADMIN")
+                        .requestMatchers(SECURED_URLs_USER).hasAnyAuthority("USER","ADMIN")
+                        .anyRequest().authenticated()
                 )
+
                 // disables form-based login
                 .formLogin(
                         AbstractHttpConfigurer::disable
                 )
-                // configures HTTP Basic authentication
-                // the application expects the client to provide the username and password in the request headers
-                .httpBasic(withDefaults());
+
+                // added the authenticationFilter in the filter chain before the UsernamePasswordAuthenticationFilter
+                .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class)
+
+                // the application will use stateless session management
+                .sessionManagement((session) -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                );
+
+
         return http.build();
     }
-
-    /*This is the method signature for configuring global authentication. The method is public, returns void (nothing),
-    and takes an AuthenticationManagerBuilder object as a parameter. The AuthenticationManagerBuilder is a class
-    provided by Spring Security to help with configuring authentication.
-
-    .userDetailsService(userDetailsService): This line sets the UserDetailsService implementation to be used by Spring
-    Security for loading user details during authentication. The UserDetailsService is responsible for retrieving user
-    information (e.g., username, password, and authorities) from a data source like a database.
-
-    .passwordEncoder(passwordEncoder()): This line sets the password encoder to be used by Spring Security for hashing
-    and verifying user passwords. The passwordEncoder() method should return a PasswordEncoder instance, which is
-    responsible for encoding and decoding passwords.
-
-    The actual implementation of the UserDetailsService and PasswordEncoder must be provided elsewhere in the codebase.*/
-    @Autowired
-    public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
-        auth
-                // userDetailsService is implemented by CustomUserDetailsService class
-                .userDetailsService(userDetailsService)
-                // passwordEncoder is created in this class itself
-                .passwordEncoder(passwordEncoder());
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
+        return configuration.getAuthenticationManager();
     }
 }
