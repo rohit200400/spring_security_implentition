@@ -39,6 +39,6 @@ public class DemoController {
         }
 
         userService.saveUser(userDto);
-        return "redirect:/register?success";
+        return "registered successfully.";
     }
 }

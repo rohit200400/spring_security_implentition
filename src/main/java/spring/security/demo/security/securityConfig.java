@@ -60,10 +60,10 @@ public class securityConfig {
                 // disables form-based login
                 .formLogin(
                         withDefaults()
-                );
+                )
                 // configures HTTP Basic authentication
                 // the application expects the client to provide the username and password in the request headers
-                //.httpBasic(withDefaults());
+                .httpBasic(withDefaults());
         return http.build();
     }
 
