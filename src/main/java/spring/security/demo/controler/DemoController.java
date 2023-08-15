@@ -26,7 +26,10 @@ public class DemoController {
         return new ResponseEntity<>(users, HttpStatus.FOUND);
     }
 
-
+    @GetMapping("/homepage")
+    public ResponseEntity<String> getHomePage() {
+        return new ResponseEntity<>("You are at secured homepage. You are seeing this because you are logged in.", HttpStatus.FOUND);
+    }
     @PostMapping("/register/save")
     public String registration(@NotNull @RequestBody UserDto userDto){
         User existingUser = userService.findUserByEmail(userDto.getEmail());

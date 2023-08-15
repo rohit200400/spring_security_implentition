@@ -31,7 +31,7 @@ public class securityConfig {
     private UserDetailsService userDetailsService;
 
 
-    private static final String[] SECURED_URLs = {"users/allUsers"};
+    private static final String[] SECURED_URLs = {"users/allUsers", "users/homepage"};
 
     private static final String[] UN_SECURED_URLs = {"users/register/save"};
 
@@ -53,15 +53,17 @@ public class securityConfig {
                 // authorization define access rules for different URL patterns.
                 .authorizeHttpRequests((authorize) ->authorize
                         .requestMatchers(UN_SECURED_URLs).permitAll()
-                        .requestMatchers(SECURED_URLs).hasAnyAuthority("ADMIN", "USER")
+                        .requestMatchers(SECURED_URLs).authenticated()
+                        //.hasAnyAuthority("ADMIN", "USER")
                 )
+                .oauth2Login(withDefaults())
                 // disables form-based login
                 .formLogin(
-                        AbstractHttpConfigurer::disable
-                )
+                        withDefaults()
+                );
                 // configures HTTP Basic authentication
                 // the application expects the client to provide the username and password in the request headers
-                .httpBasic(withDefaults());
+                //.httpBasic(withDefaults());
         return http.build();
     }
 
